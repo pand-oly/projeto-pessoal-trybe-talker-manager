@@ -14,12 +14,12 @@ app.use(bodyParser.json());
 const HTTP_OK_STATUS = 200;
 const PORT = '3000';
 
-const readFile = () => {
+const readFileTalkers = () => {
   const talkers = fs.readFileSync('./talker.json', 'utf8');
   return JSON.parse(talkers);
 };
 
-const wrirteFile = (params) => {
+const wrirteFileTalker = (params) => {
   fs.writeFileSync('./talker.json', JSON.stringify(params));
 };
 
@@ -29,14 +29,14 @@ app.get('/', (_request, response) => {
 });
 
 app.get('/talker', (_req, res) => {
-  const result = readFile();
+  const result = readFileTalkers();
   return res.status(200).json(result);
 });
 
 app.get('/talker/search', checkAuthorization, validateToken, (req, res) => {
   const { q } = req.query;
   
-  const talkers = readFile();
+  const talkers = readFileTalkers();
   const search = talkers.filter((person) => person.name.includes(q));
 
   return res.status(200).json(search);
@@ -45,7 +45,7 @@ app.get('/talker/search', checkAuthorization, validateToken, (req, res) => {
 app.get('/talker/:id', (req, res) => {
   const { id } = req.params;
 
-  const talkers = readFile();
+  const talkers = readFileTalkers();
   const result = talkers.find((person) => person.id === +id);
 
   if (!result) {
@@ -55,41 +55,47 @@ app.get('/talker/:id', (req, res) => {
   return res.status(200).json(result);
 });
 
-app.post('/talker',
-  checkAuthorization,
-  validateToken,
-  validateName,
-  validateAge,
-  validateTalk,
-  validateWatchedAt,
-  validateRate,
-  (req, res) => {
+app.post('/login', validateEmail, validatePassword, generateToken, (req, res) => {
+  const { body: { email, password }, token } = req;
+
+  if (email && password) return res.status(200).json({ token });
+});
+
+app.delete('/talker/:id', checkAuthorization, validateToken, (req, res) => {
+  const { id } = req.params;
+
+  const talkers = readFileTalkers();
+  const newListTalkers = talkers.filter((person) => person.id !== +id);
+  wrirteFileTalker(newListTalkers);
+
+  return res.status(204).end();
+});
+
+app.use(checkAuthorization);
+app.use(validateToken);
+app.use(validateName);
+app.use(validateAge);
+app.use(validateTalk);
+app.use(validateWatchedAt);
+app.use(validateRate);
+
+app.post('/talker', (req, res) => {
     const { body } = req;
     
-    const talkers = readFile();
+    const talkers = readFileTalkers();
     body.id = talkers.length + 1;
-    talkers.push(body);
+    talkers.push(body); 
 
-    // const result = [body]; //! ??? 
-
-    wrirteFile(talkers);
+    wrirteFileTalker(talkers);
 
     return res.status(201).json(body);
 });
 
-app.put('/talker/:id', 
-  checkAuthorization,
-  validateToken,
-  validateName,
-  validateAge,
-  validateTalk,
-  validateWatchedAt,
-  validateRate,
-  (req, res) => {
+app.put('/talker/:id', (req, res) => {
     const { id } = req.params;
     const { name, age, talk } = req.body;
   
-    const talkers = readFile();
+    const talkers = readFileTalkers();
     const talker = talkers.find((person) => person.id === +id);
     const restTalkers = talkers.filter((person) => person.id !== +id);
   
@@ -98,26 +104,9 @@ app.put('/talker/:id',
     talker.talk = talk;
     
     restTalkers.push(talker);
-    wrirteFile(restTalkers);
+    wrirteFileTalker(restTalkers);
   
     return res.status(200).json(talker);
-});
-
-app.post('/login', validateEmail, validatePassword, generateToken, (req, res) => {
-  const { body, token } = req;
-  const { email, password } = body;
-
-  if (email && password) return res.status(200).json({ token });
-});
-
-app.delete('/talker/:id', checkAuthorization, validateToken, (req, res) => {
-  const { id } = req.params;
-
-  const talkers = readFile();
-  const newListTalkers = talkers.filter((person) => person.id !== +id);
-  wrirteFile(newListTalkers);
-
-  return res.status(204).end();
 });
 
 app.listen(PORT, () => {
