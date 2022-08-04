@@ -19,7 +19,7 @@ const readFile = () => {
   return JSON.parse(talkers);
 };
 
-const wrirtefile = (params) => {
+const wrirteFile = (params) => {
   fs.writeFileSync('./talker.json', JSON.stringify(params));
 };
 
@@ -31,6 +31,18 @@ app.get('/', (_request, response) => {
 app.get('/talker', (_req, res) => {
   const result = readFile();
   return res.status(200).json(result);
+});
+
+app.use(checkAuthorization);
+app.use(validateToken);
+
+app.get('/talker/search', checkAuthorization, (req, res) => {
+  const { q } = req.query;
+  
+  const talkers = readFile();
+  const search = talkers.filter((person) => person.name.includes(q));
+
+  return res.status(200).json(search);
 });
 
 app.get('/talker/:id', (req, res) => {
@@ -47,8 +59,6 @@ app.get('/talker/:id', (req, res) => {
 });
 
 app.post('/talker',
-  checkAuthorization,
-  validateToken,
   validateName,
   validateAge,
   validateTalk,
@@ -63,7 +73,7 @@ app.post('/talker',
 
     const result = [body]; //! ??? 
 
-    wrirtefile(result);
+    wrirteFile(result);
 
     return res.status(201).json(body);
   });
