@@ -33,10 +33,7 @@ app.get('/talker', (_req, res) => {
   return res.status(200).json(result);
 });
 
-app.use(checkAuthorization);
-app.use(validateToken);
-
-app.get('/talker/search', checkAuthorization, (req, res) => {
+app.get('/talker/search', checkAuthorization, validateToken, (req, res) => {
   const { q } = req.query;
   
   const talkers = readFile();
@@ -48,8 +45,8 @@ app.get('/talker/search', checkAuthorization, (req, res) => {
 app.get('/talker/:id', (req, res) => {
   const { id } = req.params;
 
-  const talker = readFile();
-  const result = talker.find((person) => person.id === +id);
+  const talkers = readFile();
+  const result = talkers.find((person) => person.id === +id);
 
   if (!result) {
     return res.status(404).json({ message: 'Pessoa palestrante não encontrada' });
@@ -59,6 +56,8 @@ app.get('/talker/:id', (req, res) => {
 });
 
 app.post('/talker',
+  checkAuthorization,
+  validateToken,
   validateName,
   validateAge,
   validateTalk,
@@ -71,12 +70,38 @@ app.post('/talker',
     body.id = talkers.length + 1;
     talkers.push(body);
 
-    const result = [body]; //! ??? 
+    // const result = [body]; //! ??? 
 
-    wrirteFile(result);
+    wrirteFile(talkers);
 
     return res.status(201).json(body);
-  });
+});
+
+app.put('/talker/:id', 
+  checkAuthorization,
+  validateToken,
+  validateName,
+  validateAge,
+  validateTalk,
+  validateWatchedAt,
+  validateRate,
+  (req, res) => {
+    const { id } = req.params;
+    const { name, age, talk } = req.body;
+  
+    const talkers = readFile();
+    const talker = talkers.find((person) => person.id === +id);
+    const restTalkers = talkers.filter((person) => person.id !== +id);
+  
+    talker.name = name;
+    talker.age = age;
+    talker.talk = talk;
+    
+    restTalkers.push(talker);
+    wrirteFile(restTalkers);
+  
+    return res.status(200).json(talker);
+});
 
 app.post('/login', validateEmail, validatePassword, generateToken, (req, res) => {
   const { body, token } = req;
