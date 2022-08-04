@@ -110,6 +110,16 @@ app.post('/login', validateEmail, validatePassword, generateToken, (req, res) =>
   if (email && password) return res.status(200).json({ token });
 });
 
+app.delete('/talker/:id', checkAuthorization, validateToken, (req, res) => {
+  const { id } = req.params;
+
+  const talkers = readFile();
+  const newListTalkers = talkers.filter((person) => person.id !== +id);
+  wrirteFile(newListTalkers);
+
+  return res.status(204).end();
+});
+
 app.listen(PORT, () => {
   console.log('Online');
 });
